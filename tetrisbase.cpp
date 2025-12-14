@@ -1,6 +1,7 @@
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
+#include <time.h> // Them thu vien cho "srand(time(0))"
 using namespace std;
 #define H 20
 #define W 15
@@ -72,22 +73,33 @@ char blocks[][4][4] = {
          {' ',' ',' ',' '}}
 };
 
+char current_block[4][4]; //Khoi hien tai dang roi
 int x=4,y=0,b=1;
 void gotoxy(int x, int y) {
     COORD c = {x, y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
+//Ham ho tro xoay
+void copyBlock(char dest[4][4], const char src[4][4]) {
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            dest[i][j] = src[i][j];
+        }
+    }
+}
+//Cap nhat ham xoa block de ho tro xoay
 void boardDelBlock(){
     for (int i = 0 ; i < 4 ; i++)
         for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ' && y+j < H)
+            if (current_block[i][j] != ' ' && y+j < H)
                 board[y+i][x+j] = ' ';
 }
+//Cap nhat ham ve khoi de xoay
 void block2Board(){
     for (int i = 0 ; i < 4 ; i++)
         for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' ' )
-                board[y+i][x+j] = blocks[b][i][j];
+            if (current_block[i][j] != ' ' )
+                board[y+i][x+j] = current_block[i][j];
 }
 void initBoard(){
     for (int i = 0 ; i < H ; i++)
@@ -101,18 +113,69 @@ void draw(){
         for (int j = 0 ; j < W ; j++)
             cout<<board[i][j];
 }
+//Cap nhat ham kiem tra di chuyen
 bool canMove(int dx, int dy){
     for (int i = 0 ; i < 4 ; i++)
         for (int j = 0 ; j < 4 ; j++)
-            if (blocks[b][i][j] != ' '){
+            if (current_block[i][j] != ' '){
                 int tx = x + j + dx;
                 int ty = y + i + dy;
-                if ( tx<1 || tx >= W-1 || ty >= H-1) return false;
+                if ( tx<1 || tx >= W-1 || ty >= H-1 || ty < 0) return false;
                 if ( board[ty][tx] != ' ') return false;
             }
     return true;
 }
+//Them ham xoay phai
+void rotate90(char block[4][4]) {
+    char temp[4][4];
+    copyBlock(temp, block);
 
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            block[i][j] = temp[3 - j][i];
+        }
+    }
+}
+//Them ham xoay trai
+void rotateNeg90(char block[4][4]) {
+    char temp[4][4];
+    copyBlock(temp, block);
+
+    for (int i = 0; i < 4; i++) {
+        for (int j = 0; j < 4; j++) {
+            block[i][j] = temp[j][3 - i];
+        }
+    }
+}
+//Xoay voi Wall Kick
+void doRotate(bool clockwise) {
+    char temp_block[4][4];
+    copyBlock(temp_block, current_block);
+    int old_x = x;
+
+    if (clockwise) {
+        rotate90(current_block);
+    } else {
+        rotateNeg90(current_block);
+    }
+
+    //Kiem tra Wall Kick
+
+    // Tai vi tri hien tai
+    if (canMove(0, 0)) return;
+
+    // Dich sang trai 1 o
+    x--;
+    if (canMove(0, 0)) return;
+
+    // Quay lai vi tri cu roi dich sang phai 1 o
+    x = old_x + 1;
+    if (canMove(0, 0)) return;
+
+    // Hoan tac
+    x = old_x;
+    copyBlock(current_block, temp_block);
+}
 void removeLine() {
     for (int i = H - 2; i > 0; i--) {
         bool full = true;
@@ -128,7 +191,7 @@ void removeLine() {
                     board[k][j] = board[k - 1][j];
                 }
             }
-            i++; 
+            i++;
         }
     }
 }
@@ -139,13 +202,16 @@ int main()
     b = rand() % 7;
     system("cls");
     initBoard();
+    copyBlock(current_block, blocks[b]);
     while (1){
         boardDelBlock();
         if (kbhit()){
             char c = getch();
             if (c=='a' && canMove(-1,0)) x--;
             if (c=='d' && canMove(1,0) ) x++;
-            if (c=='x' && canMove(0,1))  y++;
+            if (c=='s' && canMove(0,1))  y++; //Dung phim s cho Sorf Drop
+            if (c=='z') doRotate(false); //Xoay trai
+            if (c=='x') doRotate(true); //Xoay phai
             if (c=='q') break;
         }
         if (canMove(0,1)) y++;
@@ -153,6 +219,7 @@ int main()
             block2Board();
             removeLine();
             x = 5; y = 0; b = rand() % 7;
+            copyBlock(current_block, blocks[b]);
         }
         block2Board();
         draw();
