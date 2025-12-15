@@ -101,17 +101,28 @@ void block2Board(){
             if (current_block[i][j] != ' ' )
                 board[y+i][x+j] = current_block[i][j];
 }
+//Cap nhat ham initBoard
 void initBoard(){
     for (int i = 0 ; i < H ; i++)
         for (int j = 0 ; j < W ; j++)
-            if ((i==H-1) || (j==0) || (j == W-1)) board[i][j] = '#';
+            if ((i==H-1) || (j==0) || (j == W-1)) board[i][j] = '#'; 
             else board[i][j] = ' ';
 }
+//Cap nhat ham Draw
 void draw(){
     gotoxy(0,0);
-    for (int i = 0 ; i < H ; i++, cout<<endl)
-        for (int j = 0 ; j < W ; j++)
-            cout<<board[i][j];
+    for (int i = 0 ; i < H ; i++) {
+        for (int j = 0 ; j < W ; j++) {
+            if (board[i][j] == '#') {
+                cout << "##"; 
+            } else if (board[i][j] != ' ') {
+                cout << "[]"; 
+            } else {
+                cout << "  "; 
+            }
+        }
+        cout << endl;
+    }
 }
 //Cap nhat ham kiem tra di chuyen
 bool canMove(int dx, int dy){
