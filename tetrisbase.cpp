@@ -1,79 +1,242 @@
 #include <iostream>
 #include <conio.h>
 #include <windows.h>
-#include <time.h> // Them thu vien cho "srand(time(0))"
+#include <ctime> // Them thu vien cho "srand(time(0))"
 using namespace std;
 #define H 20
 #define W 15
-char board[H][W] = {};
-char blocks[][4][4] = {
-    {{' ', 'I', ' ', ' '},
-     {' ', 'I', ' ', ' '},
-     {' ', 'I', ' ', ' '},
-     {' ', 'I', ' ', ' '}},
-    {{' ', 'I', ' ', ' '},
-     {' ', 'I', ' ', ' '},
-     {' ', 'I', ' ', ' '},
-     {' ', 'I', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {'I', 'I', 'I', 'I'},
-     {' ', ' ', ' ', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', 'O', 'O', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'T', ' ', ' '},
-     {'T', 'T', 'T', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', 'S', 'S', ' '},
-     {'S', 'S', ' ', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {'Z', 'Z', ' ', ' '},
-     {' ', 'Z', 'Z', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {'J', ' ', ' ', ' '},
-     {'J', 'J', 'J', ' '},
-     {' ', ' ', ' ', ' '}},
-    {{' ', ' ', ' ', ' '},
-     {' ', ' ', 'L', ' '},
-     {'L', 'L', 'L', ' '},
-     {' ', ' ', ' ', ' '}}};
 
-char current_block[4][4]; // Khoi hien tai dang roi
-int x = 4, y = 0, b = 1;
+// ===== Utility rotate (global) =====
+static void rotate90CW(char a[4][4])
+{
+    char t[4][4];
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            t[i][j] = a[i][j];
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            a[i][j] = t[3 - j][i];
+}
+static void rotate90CCW(char a[4][4])
+{
+    char t[4][4];
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            t[i][j] = a[i][j];
+    for (int i = 0; i < 4; i++)
+        for (int j = 0; j < 4; j++)
+            a[i][j] = t[j][3 - i];
+}
+
+// ===== Polymorphism Piece =====
+class Piece
+{
+protected:
+    char shape[4][4]{};
+    int state = 0;
+
+    void copyFrom(const char src[4][4])
+    {
+        for (int i = 0; i < 4; i++)
+            for (int j = 0; j < 4; j++)
+                shape[i][j] = src[i][j];
+    }
+
+public:
+    virtual ~Piece() {}
+    const char (*getShape() const)[4] { return shape; }
+
+    virtual void rotateCW() = 0;
+    virtual void rotateCCW() = 0;
+};
+
+// ===== 7 pieces =====
+class IPiece : public Piece
+{
+public:
+    IPiece()
+    {
+        const char init[4][4] = {
+            {' ', 'I', ' ', ' '},
+            {' ', 'I', ' ', ' '},
+            {' ', 'I', ' ', ' '},
+            {' ', 'I', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override
+    {
+        rotate90CW(shape);
+        state = (state + 1) % 2;
+    }
+    void rotateCCW() override
+    {
+        rotate90CCW(shape);
+        state = (state + 1) % 2;
+    }
+};
+
+class OPiece : public Piece
+{
+public:
+    OPiece()
+    {
+        const char init[4][4] = {
+            {' ', ' ', ' ', ' '},
+            {' ', 'O', 'O', ' '},
+            {' ', 'O', 'O', ' '},
+            {' ', ' ', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override {}
+    void rotateCCW() override {}
+};
+
+class TPiece : public Piece
+{
+public:
+    TPiece()
+    {
+        const char init[4][4] = {
+            {' ', ' ', ' ', ' '},
+            {' ', 'T', ' ', ' '},
+            {'T', 'T', 'T', ' '},
+            {' ', ' ', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override
+    {
+        rotate90CW(shape);
+        state = (state + 1) % 4;
+    }
+    void rotateCCW() override
+    {
+        rotate90CCW(shape);
+        state = (state + 3) % 4;
+    }
+};
+
+class SPiece : public Piece
+{
+public:
+    SPiece()
+    {
+        const char init[4][4] = {
+            {' ', ' ', ' ', ' '},
+            {' ', 'S', 'S', ' '},
+            {'S', 'S', ' ', ' '},
+            {' ', ' ', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override
+    {
+        rotate90CW(shape);
+        state = (state + 1) % 4;
+    }
+    void rotateCCW() override
+    {
+        rotate90CCW(shape);
+        state = (state + 3) % 4;
+    }
+};
+
+class ZPiece : public Piece
+{
+public:
+    ZPiece()
+    {
+        const char init[4][4] = {
+            {' ', ' ', ' ', ' '},
+            {'Z', 'Z', ' ', ' '},
+            {' ', 'Z', 'Z', ' '},
+            {' ', ' ', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override
+    {
+        rotate90CW(shape);
+        state = (state + 1) % 4;
+    }
+    void rotateCCW() override
+    {
+        rotate90CCW(shape);
+        state = (state + 3) % 4;
+    }
+};
+
+class JPiece : public Piece
+{
+public:
+    JPiece()
+    {
+        const char init[4][4] = {
+            {' ', ' ', ' ', ' '},
+            {'J', ' ', ' ', ' '},
+            {'J', 'J', 'J', ' '},
+            {' ', ' ', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override
+    {
+        rotate90CW(shape);
+        state = (state + 1) % 4;
+    }
+    void rotateCCW() override
+    {
+        rotate90CCW(shape);
+        state = (state + 3) % 4;
+    }
+};
+
+class LPiece : public Piece
+{
+public:
+    LPiece()
+    {
+        const char init[4][4] = {
+            {' ', ' ', ' ', ' '},
+            {' ', ' ', 'L', ' '},
+            {'L', 'L', 'L', ' '},
+            {' ', ' ', ' ', ' '}};
+        copyFrom(init);
+    }
+    void rotateCW() override
+    {
+        rotate90CW(shape);
+        state = (state + 1) % 4;
+    }
+    void rotateCCW() override
+    {
+        rotate90CCW(shape);
+        state = (state + 3) % 4;
+    }
+};
+
+// Factory
+static Piece *spawnRandomPiece()
+{
+    int r = rand() % 7;
+    switch (r)
+    {
+    case 0:
+        return new IPiece();
+    case 1:
+        return new OPiece();
+    case 2:
+        return new TPiece();
+    case 3:
+        return new SPiece();
+    case 4:
+        return new ZPiece();
+    case 5:
+        return new JPiece();
+    default:
+        return new LPiece();
+    }
+}
+
+char board[H][W] = {};
+Piece *curPiece = nullptr; // Current piece pointer
+int x = 4, y = 0;
 int speed = 200;           // tốc độ rơi (ms) - ban đầu
 const int MIN_SPEED = 50;  // nhanh tối đa (ms)
 const int SPEED_STEP = 15; // mỗi lần xóa dòng giảm bao nhiêu ms
@@ -83,33 +246,37 @@ void gotoxy(int x, int y)
     COORD c = {x, y};
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
-// Ham ho tro xoay
-void copyBlock(char dest[4][4], const char src[4][4])
-{
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            dest[i][j] = src[i][j];
-        }
-    }
-}
+
 // Cap nhat ham xoa block de ho tro xoay
 void boardDelBlock()
 {
+    auto s = curPiece->getShape();
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            if (current_block[i][j] != ' ' && y + j < H)
-                board[y + i][x + j] = ' ';
+            if (s[i][j] != ' ')
+            {
+                int by = y + i;
+                int bx = x + j;
+                if (by >= 0 && by < H && bx >= 0 && bx < W)
+                    board[by][bx] = ' ';
+            }
 }
+
 // Cap nhat ham ve khoi de xoay
 void block2Board()
 {
+    auto s = curPiece->getShape();
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            if (current_block[i][j] != ' ')
-                board[y + i][x + j] = current_block[i][j];
+            if (s[i][j] != ' ')
+            {
+                int by = y + i;
+                int bx = x + j;
+                if (by >= 0 && by < H && bx >= 0 && bx < W)
+                    board[by][bx] = s[i][j];
+            }
 }
+
 // Cap nhat ham initBoard
 void initBoard()
 {
@@ -147,9 +314,10 @@ void draw()
 // Cap nhat ham kiem tra di chuyen
 bool canMove(int dx, int dy)
 {
+    auto s = curPiece->getShape();
     for (int i = 0; i < 4; i++)
         for (int j = 0; j < 4; j++)
-            if (current_block[i][j] != ' ')
+            if (s[i][j] != ' ')
             {
                 int tx = x + j + dx;
                 int ty = y + i + dy;
@@ -160,70 +328,7 @@ bool canMove(int dx, int dy)
             }
     return true;
 }
-// Them ham xoay phai
-void rotate90(char block[4][4])
-{
-    char temp[4][4];
-    copyBlock(temp, block);
-
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            block[i][j] = temp[3 - j][i];
-        }
-    }
-}
-// Them ham xoay trai
-void rotateNeg90(char block[4][4])
-{
-    char temp[4][4];
-    copyBlock(temp, block);
-
-    for (int i = 0; i < 4; i++)
-    {
-        for (int j = 0; j < 4; j++)
-        {
-            block[i][j] = temp[j][3 - i];
-        }
-    }
-}
-// Xoay voi Wall Kick
-void doRotate(bool clockwise)
-{
-    char temp_block[4][4];
-    copyBlock(temp_block, current_block);
-    int old_x = x;
-
-    if (clockwise)
-    {
-        rotate90(current_block);
-    }
-    else
-    {
-        rotateNeg90(current_block);
-    }
-
-    // Kiem tra Wall Kick
-
-    // Tai vi tri hien tai
-    if (canMove(0, 0))
-        return;
-
-    // Dich sang trai 1 o
-    x--;
-    if (canMove(0, 0))
-        return;
-
-    // Quay lai vi tri cu roi dich sang phai 1 o
-    x = old_x + 1;
-    if (canMove(0, 0))
-        return;
-
-    // Hoan tac
-    x = old_x;
-    copyBlock(current_block, temp_block);
-}
+// Ham xoa dong
 int removeLine()
 {
     int cleared = 0;
@@ -257,50 +362,90 @@ int removeLine()
 int main()
 {
     srand(time(0));
-    b = rand() % 7;
     system("cls");
     initBoard();
-    copyBlock(current_block, blocks[b]);
+
+    // tạo khối đầu tiên
+    x = 5;
+    y = 0;
+    curPiece = spawnRandomPiece();
+
     while (1)
     {
+        // xóa dấu vết khối khỏi board trước khi xử lý (rất quan trọng)
         boardDelBlock();
+
         if (kbhit())
         {
             char c = getch();
+
             if (c == 'a' && canMove(-1, 0))
                 x--;
             if (c == 'd' && canMove(1, 0))
                 x++;
             if (c == 's' && canMove(0, 1))
-                y++; // Dung phim s cho Sorf Drop
-            if (c == 'z')
-                doRotate(false); // Xoay trai
-            if (c == 'x')
-                doRotate(true); // Xoay phai
+                y++; // soft drop
             if (c == 'q')
                 break;
+
+            // đa hình xoay + rollback nếu xoay bị đụng tường/đụng block
+            if (c == 'z')
+            {
+                boardDelBlock();
+                curPiece->rotateCCW();
+                if (!canMove(0, 0))
+                    curPiece->rotateCW();
+            }
+            if (c == 'x')
+            {
+                boardDelBlock();
+                curPiece->rotateCW();
+                if (!canMove(0, 0))
+                    curPiece->rotateCCW();
+            }
         }
+
+        // rơi tự động
         if (canMove(0, 1))
+        {
             y++;
+        }
         else
         {
+            // khóa khối lại
             block2Board();
+
+            // SV5: xóa dòng -> tăng tốc
             int cleared = removeLine();
             if (cleared > 0)
             {
-                speed -= cleared * SPEED_STEP; // xóa nhiều dòng -> nhanh hơn nhiều
+                speed -= cleared * SPEED_STEP;
                 if (speed < MIN_SPEED)
                     speed = MIN_SPEED;
             }
+
+            // sinh khối mới
             x = 5;
             y = 0;
-            b = rand() % 7;
 
-            copyBlock(current_block, blocks[b]);
+            delete curPiece;
+            curPiece = spawnRandomPiece();
+
+            // (tùy chọn) nếu spawn xong mà không đặt được => game over
+            if (!canMove(0, 0))
+            {
+                gotoxy(0, H + 1);
+                cout << "GAME OVER!\n";
+                break;
+            }
         }
+
+        // vẽ lại
         block2Board();
         draw();
-        _sleep(speed);
+        Sleep(speed);
     }
+
+    delete curPiece;
     return 0;
 }
