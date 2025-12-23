@@ -247,6 +247,50 @@ void gotoxy(int x, int y)
     SetConsoleCursorPosition(GetStdHandle(STD_OUTPUT_HANDLE), c);
 }
 
+// ===== Color helpers =====
+static void setColorByChar(char c)
+{
+    WORD color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE; // trắng
+
+    switch (c)
+    {
+    case 'I': // Cyan
+        color = FOREGROUND_GREEN | FOREGROUND_BLUE | FOREGROUND_INTENSITY;
+        break;
+    case 'O': // Yellow
+        color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+        break;
+    case 'T': // Purple
+        color = FOREGROUND_RED | FOREGROUND_BLUE | FOREGROUND_INTENSITY;
+        break;
+    case 'S': // Green
+        color = FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+        break;
+    case 'Z': // Red
+        color = FOREGROUND_RED | FOREGROUND_INTENSITY;
+        break;
+    case 'J': // Blue
+        color = FOREGROUND_BLUE | FOREGROUND_INTENSITY;
+        break;
+    case 'L': // Orange sáng hơn
+    color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY;
+    break;
+    default:
+        color = FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE;
+        break;
+    }
+
+    SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), color);
+}
+
+static void resetColor()
+{
+    SetConsoleTextAttribute(
+        GetStdHandle(STD_OUTPUT_HANDLE),
+        FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_BLUE);
+}
+
+
 // Cap nhat ham xoa block de ho tro xoay
 void boardDelBlock()
 {
@@ -295,22 +339,29 @@ void draw()
     {
         for (int j = 0; j < W; j++)
         {
-            if (board[i][j] == '#')
+            char cell = board[i][j];
+
+            if (cell == '#')
             {
+                resetColor();
                 cout << "##";
             }
-            else if (board[i][j] != ' ')
+            else if (cell != ' ')
             {
+                setColorByChar(cell);
                 cout << "[]";
+                resetColor();
             }
             else
             {
+                resetColor();
                 cout << "  ";
             }
         }
         cout << endl;
     }
 }
+
 // Cap nhat ham kiem tra di chuyen
 bool canMove(int dx, int dy)
 {
